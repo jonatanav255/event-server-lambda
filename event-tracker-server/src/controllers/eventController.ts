@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
-import Joi from 'joi'
 import kafka from 'kafka-node'
+import { eventSchema } from './validation' // Import the validation schema
 
 // Kafka client and producer setup
 const client = new kafka.KafkaClient({ kafkaHost: 'localhost:9092' }) // Update with your Kafka broker address
@@ -12,14 +12,6 @@ producer.on('ready', () => {
 
 producer.on('error', error => {
   console.error('Error in Kafka Producer', error)
-})
-
-// Define the schema for event validation
-const eventSchema = Joi.object({
-  id: Joi.string().required(),
-  type: Joi.string().required(),
-  timestamp: Joi.date().required(),
-  data: Joi.object().required()
 })
 
 export const handleEvent = (req: Request, res: Response) => {
