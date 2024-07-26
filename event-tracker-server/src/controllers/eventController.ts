@@ -1,5 +1,18 @@
 import { Request, Response } from 'express'
 import Joi from 'joi'
+import kafka from 'kafka-node'
+
+// Kafka client and producer setup
+const client = new kafka.KafkaClient({ kafkaHost: 'localhost:9092' }) // Update with your Kafka broker address
+const producer = new kafka.Producer(client)
+
+producer.on('ready', () => {
+  console.log('Kafka Producer is connected and ready.')
+})
+
+producer.on('error', error => {
+  console.error('Error in Kafka Producer', error)
+})
 
 // Define the schema for event validation
 const eventSchema = Joi.object({
@@ -16,10 +29,18 @@ export const handleEvent = (req: Request, res: Response) => {
     return res.status(400).send(`Validation error: ${error.details[0].message}`)
   }
 
-  // Log the valid event
-  console.log('Event received:', value)
+  // Kafka message
+  const message = JSON.stringify(value)
+  const payloads = [{ topic: 'events', messages: message }] // Update 'events' with your topic name
 
-  // Forward to event queue or store in event bucket
-
-  res.status(200).send('Event received')
+  // Send to Kafka
+  producer.send(payloads, (err, data) => {
+    if (err) {
+      console.error('Error sending message to Kafka', err)
+      res.status(500).send('Error sending message to Kafka')
+    } else {
+      console.log('Message sent to Kafka', data)
+      res.status(200).send('Event received')
+    }
+  })
 }
